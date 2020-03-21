@@ -13,11 +13,12 @@ private:
     int *nez;
     double** matrix;
     double** F;
+    bool expanded;
     double **CreateMatrix(int n, int m) {
         double **matrix = new double *[n];
         for (int count = 0; count < n; count++)
             matrix[count] = new double[m];
-        cout << "Элементы расширенной матрицы через пробел построчно: " << endl;
+        cout << "Элементы нерасширенной матрицы через пробел построчно: " << endl;
         for (int i = 0; i < n; i++) {
             for (int j = 0; j < m; j++) {
                 cin >> matrix[i][j];
@@ -25,13 +26,39 @@ private:
         }
         return matrix;
     }
+    double** Expand(double *matrix[], int n, int m){
+        double **Ematrix = new double *[n];
+        for (int count = 0; count < n; count++)
+            Ematrix[count] = new double[m+1];
+        cout<<"Введите солбец свободных членов: "<<endl;
+        this->m++;
+        for(int i = 0; i<n; i++){
+            for(int j = 0; j<m; j++){
+                Ematrix[i][j]=matrix[i][j];
+            }
+            cin>>Ematrix[i][m];
+        }
+
+        expanded=true;
+        return Ematrix;
+    }
     void PrintMatrix(double *matrix[], int n, int m) {
         cout<<endl;
-        for (int i = 0; i < n; i++) {
-            for (int j = 0; j < m; j++) {
-                cout << matrix[i][j] << " ";
+        if(!expanded) {
+            for (int i = 0; i < n; i++) {
+                for (int j = 0; j < m; j++) {
+                    cout << matrix[i][j] << " ";
+                }
+                cout << endl;
             }
-            cout << endl;
+        }else{
+            for (int i = 0; i < n; i++) {
+                for (int j = 0; j < m-1; j++) {
+                    cout << matrix[i][j] << " ";
+                }
+                cout<<"|"<<matrix[i][m-1];
+                cout << endl;
+            }
         }
         cout<<endl;
     }
@@ -50,29 +77,7 @@ private:
             matrix[i][k]*=l;
         }
     }
-
-public:
-    Matrix(int n, int m){
-        this->n=n;
-        this->m=m;
-        matrix=CreateMatrix(this->n, this->m);
-        tempbasis = new int[m+1];
-
-    };
-    ~Matrix(){
-        for (int count = 0; count < n; count++)
-            delete []matrix[count];
-    };
-    void print(){
-        PrintMatrix(this->matrix, n, m);
-    }
-    void replace(int i, int j){
-        Replace(this->matrix, n, m, i, j);
-    }
-    void multiply(int row, double alpha){
-        Multiply(this->matrix, m, row, alpha);
-    }
-    void gauss(){
+    void Gauss(double*matrix[], int n, int m){
         rank=0;
         int num=0;
         for(int col=0; col<m; col++){
@@ -84,14 +89,14 @@ public:
                     num++;
                     for(int r=num; r<n; r++){
                         double c=-1*this->matrix[r][col]/this->matrix[num-1][col];
-                       // cout<<c<<endl;
+                        // cout<<c<<endl;
                         for(int q=col; q<m; q++){
                             this->matrix[r][q]+=c*this->matrix[num-1][q];
                         }
                     }
                     for(int r=num-2; r>=0; r--){
                         double c=-1*this->matrix[r][col]/this->matrix[num-1][col];
-                       // cout<<c<<endl;
+                        // cout<<c<<endl;
                         for(int q=col; q<m; q++){
                             this->matrix[r][q]+=c*this->matrix[num-1][q];
                         }
@@ -111,25 +116,62 @@ public:
         nez=new int[m-rank-1];
         int u = 0;
         int min = 0;
-            for (int i = min; i < m-1; i++) {
-                bool flag = true;
-                for (int j = 0; j < rank; j++) {
-                    if (i == basis[j]) {
-                        flag=false;
-                    }
-                }
-                if (flag) {
-                    nez[u] = i;
-                    u++;
-                    min = i+1;
+        for (int i = min; i < m-1; i++) {
+            bool flag = true;
+            for (int j = 0; j < rank; j++) {
+                if (i == basis[j]) {
+                    flag=false;
                 }
             }
+            if (flag) {
+                nez[u] = i;
+                u++;
+                min = i+1;
+            }
+        }
 
         for(int row = 0; row<n; row++){
             for(int col=0; col<m; col++){
                 if(matrix[row][col]==-0||abs(matrix[row][col])<1e-16) matrix[row][col]=0;
             }
         }
+    };
+
+public:
+    Matrix(){
+
+        cout<<"Введите размер нерасширенной матрицы: "<<endl;
+        cin>>this->n;
+        cin>>this->m;
+        matrix=CreateMatrix(this->n, this->m);
+        cout<<"Расширить матрицу? (Y/N)"<<endl;
+        char Answer;
+        cin>>Answer;
+        if(Answer=='Y'||Answer=='y'){
+            matrix=Expand(matrix, n, m);
+        }
+        tempbasis = new int[m+1];
+
+    };
+    ~Matrix(){
+        for (int count = 0; count < n; count++)
+            delete []matrix[count];
+    };
+    void expand(){
+        matrix=Expand(matrix, n, m);
+        expanded=true;
+    }
+    void print(){
+        PrintMatrix(this->matrix, n, m);
+    }
+    void replace(int i, int j){
+        Replace(this->matrix, n, m, i, j);
+    }
+    void multiply(int row, double alpha){
+        Multiply(this->matrix, m, row, alpha);
+    }
+    void gauss(){
+        Gauss(matrix, n, m);
     }
 
     void solve(){
@@ -170,10 +212,10 @@ int main() {
 
     SetConsoleOutputCP(CP_UTF8);
 
-    Matrix *A= new Matrix(2,5);
-   A->solve();
+    Matrix *A= new Matrix();
+
     A->print();
-
-
+    A->solve();
+    A->print();
     return 0;
 }
