@@ -9,7 +9,7 @@ private:
     int n;
     int m;
     int rank;
-    int *basis, *tempbasis;
+    int *base;
     int *nez;
     double** matrix;
     double** F;
@@ -79,9 +79,14 @@ private:
     }
     void Gauss(double*matrix[], int n, int m){
         rank=0;
+        int *tmpb= new int[m];
+        int *tmpn = new int[m];
         int num=0;
+        int u = 0;
         for(int col=0; col<m; col++){
+            bool a = true;
             for(int row=num; row<n; row++){
+
                 if(this->matrix[row][col]!=0){
                     rank++;
                     Multiply(this->matrix, m, num, 1/this->matrix[num][col]);
@@ -102,32 +107,27 @@ private:
                         }
                     }
                     Replace(this->matrix, n, m, row, num-1);
-
-                    cout<<col<<endl;
-                    tempbasis[rank-1]=col;
+                    tmpb[rank-1]=col;
+                    a=false;
                     break;
                 }
             }
-        }
-        basis=new int[rank];
-        for(int i=0; i<rank; i++){
-            basis[i]=tempbasis[i];
-        }
-        nez=new int[m-rank-1];
-        int u = 0;
-        int min = 0;
-        for (int i = min; i < m-1; i++) {
-            bool flag = true;
-            for (int j = 0; j < rank; j++) {
-                if (i == basis[j]) {
-                    flag=false;
-                }
-            }
-            if (flag) {
-                nez[u] = i;
+            if(a) {
+                tmpn[u] = col;
                 u++;
-                min = i+1;
             }
+        }
+        base = new int[rank];
+        for(int i = 0; i<rank; i++){
+            base[i]=tmpb[i];
+        }
+        delete [] tmpb;
+        if(isSolvable(matrix, n, m, expanded)){
+            nez=new int[m-rank-1];
+            for(int i = 0; i<m-rank-1; i++){
+                nez[i]=tmpn[i];
+            }
+            delete[] tmpn;
         }
 
         for(int row = 0; row<n; row++){
@@ -135,7 +135,21 @@ private:
                 if(matrix[row][col]==-0||abs(matrix[row][col])<1e-16) matrix[row][col]=0;
             }
         }
-    };
+    }
+bool isSolvable(double *matrix[], int n, int m, bool expanded){
+        if(expanded){
+            if(base[rank-1]==m-1){
+               cout<<"Матрица несовместна"<<endl;
+                return false;
+            }else{
+                cout<<"Матрица совместна"<<endl;
+                return true;
+            }
+        }else{
+            cout<<"Расширьте матрицу, чтобы решить. (expand())"<<endl;
+            return false;
+        }
+    }
 
 public:
     Matrix(){
@@ -149,8 +163,10 @@ public:
         cin>>Answer;
         if(Answer=='Y'||Answer=='y'){
             matrix=Expand(matrix, n, m);
+        }else{
+            expanded = false;
         }
-        tempbasis = new int[m+1];
+
 
     };
     ~Matrix(){
@@ -176,9 +192,10 @@ public:
 
     void solve(){
         gauss();
+        if(isSolvable(matrix, n , m, expanded)){
         cout<<"частное решение: "<<endl;
         for(int i = 0; i<rank; i++){
-            cout<<"x"<<basis[i]<<"="<<matrix[i][m-1]<<endl;
+            cout<<"x"<<base[i]<<"="<<matrix[i][m-1]<<endl;
 
         }
         for(int i = 0; i<m-rank-1; i++){
@@ -190,7 +207,7 @@ public:
             F[count] = new double[m-rank-1];
         for(int i = 0; i<rank; i++) {
             for (int j = 0; j < m - 1 - rank; j++) {
-                F[i][j]=-1*matrix[basis[i]][nez[j]];
+                F[i][j]=-1*matrix[base[i]][nez[j]];
                 cout<<F[i][j]<<" ";
             }
             cout<<endl;
@@ -204,6 +221,7 @@ public:
             cout<<endl;
         }
 
+    }
     }
 
 };
